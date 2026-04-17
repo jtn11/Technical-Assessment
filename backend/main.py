@@ -87,6 +87,10 @@ def chunk_text(text: str, chunk_size=500, overlap=50) -> List[str]:
             chunks.append(chunk)
     return chunks
 
+@app.get("/")
+def home():
+    return {"message": "API is running 🚀"}   
+
 @app.post("/ingest")
 def ingest_text(req: IngestRequest):
     if not pinecone_index:
