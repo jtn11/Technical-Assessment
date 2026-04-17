@@ -1,0 +1,33 @@
+services:
+  # -------------------------
+  # FastAPI Backend
+  # -------------------------
+  - type: web
+    name: indika-rag-backend
+    env: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      # These must be set manually in the Render dashboard for security!
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX_NAME
+        value: "rag-index"
+
+  # -------------------------
+  # Next.js Frontend
+  # -------------------------
+  - type: web
+    name: indika-rag-frontend
+    env: node
+    buildCommand: "cd frontend && npm install && npm run build"
+    startCommand: "cd frontend && npm start"
+    envVars:
+      # Automatically syncs the generated Backend URL into the Frontend at build time!
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: indika-rag-backend
+          envVarKey: RENDER_EXTERNAL_URL
