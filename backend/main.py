@@ -96,6 +96,11 @@ def ingest_text(req: IngestRequest):
     if not pinecone_index:
         raise HTTPException(status_code=500, detail="Pinecone not configured")
         
+    try:
+        pinecone_index.delete(delete_all=True)
+    except Exception as e:
+        print("Warning: Failed to clear Pinecone index:", e)
+        
     chunks = chunk_text(req.text)
     
     # Generate embeddings
@@ -124,6 +129,11 @@ async def upload_pdf(file: UploadFile = File(...)):
     
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
+        
+    try:
+        pinecone_index.delete(delete_all=True)
+    except Exception as e:
+        print("Warning: Failed to clear Pinecone index:", e)
         
     try:
         contents = await file.read()
