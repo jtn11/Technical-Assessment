@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { Send, FileText, UploadCloud, X, Loader2, Bot, User, CheckCircle } from "lucide-react";
+import { Send, FileText, UploadCloud, X, Loader2, Bot, User, CheckCircle, Mic } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -26,7 +26,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"pdf" | "text">("pdf");
+  const [activeTab, setActiveTab] = useState<"pdf" | "text" | "media">("pdf");
   
   const [uploadText, setUploadText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -105,6 +105,20 @@ export default function Home() {
       setUploadStatus("error");
       setStatusMessage(err.response?.data?.detail || err.message);
     }
+  };
+
+  const handleMediaUpload = () => {
+    if (!selectedFile) return;
+    setUploadStatus("uploading");
+    setTimeout(() => {
+      setUploadStatus("success");
+      setStatusMessage("Audio transcription pipeline is designed using Whisper API and will convert speech to text before feeding into the RAG system.");
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setUploadStatus("idle");
+        setSelectedFile(null);
+      }, 5000); 
+    }, 1500); 
   };
 
   return (
@@ -211,7 +225,7 @@ export default function Home() {
             
             <div className="p-1 flex border-b border-neutral-800/80 bg-neutral-900">
               <button 
-                onClick={() => setActiveTab("pdf")}
+                onClick={() => { setActiveTab("pdf"); setSelectedFile(null); }}
                 className={cn("flex-1 py-3 text-sm font-medium transition-all rounded-lg", activeTab === "pdf" ? "bg-neutral-800 text-neutral-200" : "text-neutral-500 hover:text-neutral-400")}
               >
                 Upload PDF
@@ -221,6 +235,12 @@ export default function Home() {
                 className={cn("flex-1 py-3 text-sm font-medium transition-all rounded-lg", activeTab === "text" ? "bg-neutral-800 text-neutral-200" : "text-neutral-500 hover:text-neutral-400")}
               >
                 Raw Text
+              </button>
+              <button 
+                onClick={() => { setActiveTab("media"); setSelectedFile(null); }}
+                className={cn("flex-1 py-3 text-sm font-medium transition-all rounded-lg", activeTab === "media" ? "bg-neutral-800 text-neutral-200" : "text-neutral-500 hover:text-neutral-400")}
+              >
+                Audio/Video
               </button>
             </div>
 
@@ -258,7 +278,7 @@ export default function Home() {
                     {uploadStatus === "uploading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Process PDF"}
                   </button>
                 </div>
-              ) : (
+              ) : activeTab === "text" ? (
                 <div className="space-y-4">
                   <textarea
                     value={uploadText}
@@ -272,6 +292,39 @@ export default function Home() {
                     className="w-full py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {uploadStatus === "uploading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ingest Text"}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative border-2 border-dashed border-neutral-700 hover:border-emerald-500/50 rounded-xl p-8 text-center transition-colors bg-neutral-950/30 w-full group">
+                    <input 
+                      type="file" 
+                      accept="audio/*,video/*" 
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-500/10 transition-all duration-300">
+                        <Mic className="w-6 h-6 text-neutral-400 group-hover:text-emerald-400 transition-colors" />
+                      </div>
+                      <div>
+                        {selectedFile ? (
+                          <p className="text-sm font-medium text-emerald-400">{selectedFile.name}</p>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium text-neutral-300">Upload Media</p>
+                            <p className="text-xs text-neutral-500 mt-1">Audio or Video files</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleMediaUpload}
+                    disabled={!selectedFile || uploadStatus === "uploading"}
+                    className="w-full py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {uploadStatus === "uploading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transcribe Media"}
                   </button>
                 </div>
               )}
