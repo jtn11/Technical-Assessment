@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+groq
+pinecone
+python-dotenv
+httpx
+pydantic
+fastembed
+python-multipart
+pypdf
