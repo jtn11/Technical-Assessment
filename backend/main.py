@@ -60,8 +60,12 @@ if PINECONE_API_KEY:
     
     try:
         pinecone_index = pc.Index(PINECONE_INDEX_NAME)
+        
+        # Clear the database completely on initial server startup
+        pinecone_index.delete(delete_all=True)
+        print(f"Pinecone Index '{PINECONE_INDEX_NAME}' bound and fully cleared on startup.")
     except Exception as e:
-        print("Failed to bind to Pinecone Index:", e)
+        print("Failed to bind or clear Pinecone Index on startup:", e)
 
 # Initialize light-weight embedding model
 # all-MiniLM-L6-v2 produces 384-dimensional embeddings and takes < 100MB RAM
