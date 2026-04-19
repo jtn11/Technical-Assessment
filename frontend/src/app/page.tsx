@@ -107,18 +107,28 @@ export default function Home() {
     }
   };
 
-  const handleMediaUpload = () => {
+  const handleMediaUpload = async () => {
     if (!selectedFile) return;
     setUploadStatus("uploading");
-    setTimeout(() => {
+    
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const res = await axios.post(`${API_BASE}/upload-audio`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
       setUploadStatus("success");
-      setStatusMessage("Audio transcription pipeline is designed using Whisper API and will convert speech to text before feeding into the RAG system.");
+      setStatusMessage(res.data.message);
       setTimeout(() => {
         setIsModalOpen(false);
         setUploadStatus("idle");
         setSelectedFile(null);
-      }, 5000); 
-    }, 1500); 
+      }, 3000); // Gives time to read success message
+    } catch (err: any) {
+      setUploadStatus("error");
+      setStatusMessage(err.response?.data?.detail || err.message);
+    }
   };
 
   return (

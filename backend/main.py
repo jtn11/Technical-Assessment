@@ -168,6 +168,53 @@ async def upload_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/upload-audio")
+async def upload_audio(file: UploadFile = File(...)):
+    if not groq_client:
+        raise HTTPException(status_code=500, detail="Groq API Key not configured")
+    if not pinecone_index:
+        raise HTTPException(status_code=500, detail="Pinecone Configured")
+        
+    try:
+        pinecone_index.delete(delete_all=True)
+    except Exception as e:
+        print("Warning: Failed to clear Pinecone index:", e)
+
+    try:
+        contents = await file.read()
+        
+        # 1. Transcribe audio using Groq Whisper API
+        transcription = groq_client.audio.transcriptions.create(
+          file=(file.filename, contents),
+          model="whisper-large-v3",
+          response_format="verbose_json",
+        )
+        extracted_text = transcription.text
+        
+        if not extracted_text or not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract speech from audio file")
+            
+        # 2. Re-use chunking logic for Pinecone
+        chunks = chunk_text(extracted_text)
+        embeddings = list(embedding_model.embed(chunks))
+        
+        vectors = []
+        for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+            vector_id = str(uuid.uuid4())
+            vectors.append({
+                "id": vector_id,
+                "values": emb.tolist(),
+                "metadata": {"text": chunk, "source": file.filename}
+            })
+            
+        for i in range(0, len(vectors), 50):
+            pinecone_index.upsert(vectors=vectors[i:i+50])
+            
+        return {"message": f"Successfully transcribed '{file.filename}' into {len(chunks)} chunks"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/chat")
 def chat(req: ChatRequest):
     if not groq_client:
